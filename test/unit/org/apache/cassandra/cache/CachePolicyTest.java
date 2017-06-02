@@ -29,6 +29,14 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.apache.cassandra.Util.column;
+import org.apache.cassandra.utils.Pair;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotSame;
 
 /**
  * Created by Xingan Wang on 6/1/17.
@@ -57,49 +65,59 @@ public class CachePolicyTest
     private void simpleCase(ColumnFamily cf, ICache<MeasureableString, IRowCacheEntry> cache)
     {
         cache.put(key1, cf);
-        cache.put(key1, cf);
 
-        if(cache.get(key1) == null) {
+        if(cache.get(key1) == null)
             System.out.println("Getting key1 failed");
-        }
 
-        //assertDigests(cache.get(key1), cf);
+
+        assertDigests(cache.get(key1), cf);
         cache.put(key2, cf);
-        cache.put(key2, cf);
-
         cache.put(key3, cf);
-        cache.put(key3, cf);
-
         cache.put(key4, cf);
-
         cache.put(key5, cf);
-
 
         if(cache.size() == CAPACITY) {
             System.out.println(cache.size());
             System.out.println("Capacity is correct");
         }
 
-        if(cache.get(key1).equals(cf)){
-            System.out.println("key1 hash is correct");
-        }
 
-        if(cache.get(key2).equals(cf)){
-            System.out.println("key2 hash is correct");
-        }
+    }
 
-        if(cache.get(key3).equals(cf)){
-            System.out.println("key3 hash is correct");
-        }
+    private void assertDigests(IRowCacheEntry one, ColumnFamily two)
+    {
+        // CF does not implement .equals
+        assertTrue(one instanceof ColumnFamily);
+        assertEquals(ColumnFamily.digest((ColumnFamily)one), ColumnFamily.digest(two));
+    }
 
-        if(cache.containsKey(key4) == false){
-            System.out.println("key4 key should be swap out ");
-        }
+    // TODO this isn't terribly useful
+    private void concurrentCase(final ColumnFamily cf, final ICache<MeasureableString, IRowCacheEntry> cache) throws InterruptedException
+    {
+        Runnable runable = new Runnable()
+        {
+            public void run()
+            {
+                for (int j = 0; j < 10; j++)
+                {
+                    cache.put(key1, cf);
+                    cache.put(key2, cf);
+                    cache.put(key3, cf);
+                    cache.put(key4, cf);
+                    cache.put(key5, cf);
+                }
+            }
+        };
 
-        if(cache.containsKey(key5) == true){
-            System.out.println("key5 should exist ");
+        List<Thread> threads = new ArrayList<Thread>(100);
+        for (int i = 0; i < 100; i++)
+        {
+            Thread thread = new Thread(runable);
+            threads.add(thread);
+            thread.start();
         }
-
+        for (Thread thread : threads)
+            thread.join();
     }
 
     private ColumnFamily createCF()
@@ -116,8 +134,9 @@ public class CachePolicyTest
         ICache<MeasureableString, IRowCacheEntry> cache = SerializingCache.create(CAPACITY, Weighers.<RefCountedMemory>singleton(), new SerializingCacheProvider.RowCacheSerializer());
         ColumnFamily cf = createCF();
         simpleCase(cf, cache);
-        //concurrentCase(cf, cache);
+//        concurrentCase(cf, cache);
     }
+
 
     private class MeasureableString implements IMeasurableMemory
     {
