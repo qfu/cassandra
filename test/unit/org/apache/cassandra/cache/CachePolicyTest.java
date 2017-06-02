@@ -66,22 +66,18 @@ public class CachePolicyTest
     {
         cache.put(key1, cf);
 
-        if(cache.get(key1) == null)
-            System.out.println("Getting key1 failed");
-
+        assertNotNull(cache.get(key1));
 
         assertDigests(cache.get(key1), cf);
         cache.put(key2, cf);
+        cache.put(key2, cf);
+        cache.put(key3, cf);
+        cache.put(key3, cf);
         cache.put(key3, cf);
         cache.put(key4, cf);
         cache.put(key5, cf);
 
-        if(cache.size() == CAPACITY) {
-            System.out.println(cache.size());
-            System.out.println("Capacity is correct");
-        }
-
-
+        assertEquals(CAPACITY, cache.size());
     }
 
     private void assertDigests(IRowCacheEntry one, ColumnFamily two)
@@ -91,34 +87,6 @@ public class CachePolicyTest
         assertEquals(ColumnFamily.digest((ColumnFamily)one), ColumnFamily.digest(two));
     }
 
-    // TODO this isn't terribly useful
-    private void concurrentCase(final ColumnFamily cf, final ICache<MeasureableString, IRowCacheEntry> cache) throws InterruptedException
-    {
-        Runnable runable = new Runnable()
-        {
-            public void run()
-            {
-                for (int j = 0; j < 10; j++)
-                {
-                    cache.put(key1, cf);
-                    cache.put(key2, cf);
-                    cache.put(key3, cf);
-                    cache.put(key4, cf);
-                    cache.put(key5, cf);
-                }
-            }
-        };
-
-        List<Thread> threads = new ArrayList<Thread>(100);
-        for (int i = 0; i < 100; i++)
-        {
-            Thread thread = new Thread(runable);
-            threads.add(thread);
-            thread.start();
-        }
-        for (Thread thread : threads)
-            thread.join();
-    }
 
     private ColumnFamily createCF()
     {
@@ -134,7 +102,6 @@ public class CachePolicyTest
         ICache<MeasureableString, IRowCacheEntry> cache = SerializingCache.create(CAPACITY, Weighers.<RefCountedMemory>singleton(), new SerializingCacheProvider.RowCacheSerializer());
         ColumnFamily cf = createCF();
         simpleCase(cf, cache);
-//        concurrentCase(cf, cache);
     }
 
 
