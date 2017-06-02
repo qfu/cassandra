@@ -274,8 +274,7 @@ public class SerializingCache<K, V> implements ICache<K, V>
 
     public Iterator<K> keyIterator()
     {
-        //return map.keySet().iterator();
-        return null;
+        return map.keyIterator();
     }
 
     public Iterator<K> hotKeyIterator(int n)

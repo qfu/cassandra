@@ -47,6 +47,7 @@ public class CassandraCacheTest {
     private void simpleCase(ColumnFamily cf, ICache<MeasureableString, IRowCacheEntry> cache)
     {
         cache.put(key1, cf);
+        cache.put(key1, cf);
 
         if(cache.get(key1) == null)
             System.out.println("Getting key1 failed");
@@ -54,15 +55,40 @@ public class CassandraCacheTest {
 
         //assertDigests(cache.get(key1), cf);
         cache.put(key2, cf);
+        cache.put(key2, cf);
+
         cache.put(key3, cf);
+        cache.put(key3, cf);
+
         cache.put(key4, cf);
+
         cache.put(key5, cf);
+
 
         if(cache.size() == CAPACITY) {
             System.out.println(cache.size());
             System.out.println("Capacity is correct");
         }
 
+        if(cache.get(key1).equals(cf)){
+            System.out.println("key1 hash is correct");
+        }
+
+        if(cache.get(key2).equals(cf)){
+            System.out.println("key2 hash is correct");
+        }
+
+        if(cache.get(key3).equals(cf)){
+            System.out.println("key3 hash is correct");
+        }
+
+        if(cache.containsKey(key4) == false){
+            System.out.println("key4 key should be swap out ");
+        }
+
+        if(cache.containsKey(key5) == true){
+            System.out.println("key5 should exist ");
+        }
 
     }
 

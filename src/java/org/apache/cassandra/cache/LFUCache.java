@@ -192,7 +192,7 @@ public class LFUCache<K,V> {
     }
 
     public Iterator<K> keyIterator(){
-        return null;
+        return keyMap.keySet().iterator();
     }
 
     public Iterator<K> hotKeyIterator(int n){
