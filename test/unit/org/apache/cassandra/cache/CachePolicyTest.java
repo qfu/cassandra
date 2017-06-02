@@ -65,6 +65,8 @@ public class CachePolicyTest
     private void simpleCase(ColumnFamily cf, ICache<MeasureableString, IRowCacheEntry> cache)
     {
         cache.put(key1, cf);
+        cache.put(key1, cf);
+
 
         assertNotNull(cache.get(key1));
 
@@ -78,6 +80,16 @@ public class CachePolicyTest
         cache.put(key5, cf);
 
         assertEquals(CAPACITY, cache.size());
+        assertEquals(cache.containsKey(key1),true);
+        assertEquals(cache.containsKey(key2),true);
+        assertEquals(cache.containsKey(key3),true);
+        assertEquals(cache.containsKey(key4),false);
+        assertDigests(cache.get(key5), cf);
+        assertEquals(cache.containsKey(key5),true);
+
+
+
+
     }
 
     private void assertDigests(IRowCacheEntry one, ColumnFamily two)
