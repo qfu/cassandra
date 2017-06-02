@@ -50,7 +50,7 @@ public class LFUCache<K,V> {
         this.capacity = capacity;
     }
 
-    public V get(K key) {
+    public synchronized V get(K key) {
         if (keyMap.containsKey(key)) {
             KeyNode keyNode = keyMap.get(key);
             V val = (V)keyNode.val;
@@ -60,7 +60,7 @@ public class LFUCache<K,V> {
         return null;
     }
 
-    public V put(K key, V val) {
+    public synchronized V put(K key, V val) {
         if (this.capacity == 0) return null;
         if (keyMap.containsKey(key)) {
             V value = (V)keyMap.get(key).val;

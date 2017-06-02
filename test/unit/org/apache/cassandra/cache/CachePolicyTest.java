@@ -64,6 +64,7 @@ public class CachePolicyTest
 
     private void simpleCase(ColumnFamily cf, ICache<MeasureableString, IRowCacheEntry> cache)
     {
+
         cache.put(key1, cf);
         cache.put(key1, cf);
 
@@ -92,6 +93,33 @@ public class CachePolicyTest
 
     }
 
+    private void concurrentCase(final ColumnFamily cf, final ICache<MeasureableString, IRowCacheEntry> cache) throws InterruptedException
+    {
+        Runnable runable = new Runnable()
+        {
+            public void run()
+            {
+                for (int j = 0; j < 10; j++)
+                {
+                    cache.put(key1, cf);
+                    cache.put(key2, cf);
+                    cache.put(key3, cf);
+                    cache.put(key4, cf);
+                    cache.put(key5, cf);
+                }
+            }
+        };
+
+        List<Thread> threads = new ArrayList<Thread>(100);
+        for (int i = 0; i < 100; i++)
+        {
+            Thread thread = new Thread(runable);
+            threads.add(thread);
+            thread.start();
+        }
+        for (Thread thread : threads)
+            thread.join();
+    }
     private void assertDigests(IRowCacheEntry one, ColumnFamily two)
     {
         // CF does not implement .equals
@@ -116,6 +144,13 @@ public class CachePolicyTest
         simpleCase(cf, cache);
     }
 
+    @Test
+    public void testConcurrentCache() throws InterruptedException
+    {
+        ICache<MeasureableString, IRowCacheEntry> cache = SerializingCache.create(CAPACITY, Weighers.<RefCountedMemory>singleton(), new SerializingCacheProvider.RowCacheSerializer());
+        ColumnFamily cf = createCF();
+        concurrentCase(cf, cache);
+    }
 
     private class MeasureableString implements IMeasurableMemory
     {
