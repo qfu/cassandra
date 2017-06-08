@@ -32,7 +32,7 @@ import org.apache.cassandra.io.util.MemoryInputStream;
 import org.apache.cassandra.io.util.MemoryOutputStream;
 import org.apache.cassandra.utils.vint.EncodedDataInputStream;
 import org.apache.cassandra.utils.vint.EncodedDataOutputStream;
-import org.apache.cassandra.cache.LFUCache;
+
 
 /**
  * Serializes cache values off-heap.
@@ -44,8 +44,8 @@ public class SerializingCache<K, V> implements ICache<K, V>
 
     private static final int DEFAULT_CONCURENCY_LEVEL = 64;
 
-    //private final ConcurrentLinkedHashMap<K, RefCountedMemory> map;
-    private LFUCache<K,RefCountedMemory> map;
+    private final ConcurrentLinkedHashMap<K, RefCountedMemory> map;
+//    private LFUCache<K,RefCountedMemory> map;
     private final ISerializer<V> serializer;
 
     private SerializingCache(long capacity, Weigher<RefCountedMemory> weigher, ISerializer<V> serializer)
@@ -59,14 +59,14 @@ public class SerializingCache<K, V> implements ICache<K, V>
                 mem.unreference();
             }
         };
-        this.map = new LFUCache<K, RefCountedMemory>(capacity);
-        /*
+//        this.map = new LFUCache<K, RefCountedMemory>(capacity);
+
         this.map = new ConcurrentLinkedHashMap.Builder<K, RefCountedMemory>()
                    .weigher(weigher)
                    .maximumWeightedCapacity(capacity)
                    .concurrencyLevel(DEFAULT_CONCURENCY_LEVEL)
                    .listener(listener)
-                   .build();*/
+                   .build();
     }
 
     public static <K, V> SerializingCache<K, V> create(long weightedCapacity, Weigher<RefCountedMemory> weigher, ISerializer<V> serializer)
@@ -274,14 +274,15 @@ public class SerializingCache<K, V> implements ICache<K, V>
 
     public Iterator<K> keyIterator()
     {
-        return map.keyIterator();
+        return null;
+//        return map.keyIterator();
     }
 
     public Iterator<K> hotKeyIterator(int n)
     {
 
-        //return map.descendingKeySetWithLimit(n).iterator();
-        return null;
+        return map.descendingKeySetWithLimit(n).iterator();
+//        return null;
     }
 
     public boolean containsKey(K key)

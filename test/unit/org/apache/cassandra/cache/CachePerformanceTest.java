@@ -94,13 +94,13 @@ public class CachePerformanceTest
         cache.put(key6, cf);
 
         assertEquals(CAPACITY, cache.size());
-        assertNotNull(cache.get(key1));
         assertNotNull(cache.get(key2));
+        assertNotNull(cache.get(key3));
         assertNotNull(cache.get(key4));
         assertNotNull(cache.get(key5));
         assertNotNull(cache.get(key6));
 
-        assertNull(cache.get(key3));
+        assertNull(cache.get(key1));
 
         // key1, key2, key4, key5, key6 should be in LFU cache now
         // key2, key3, key4, key5, ley6 should be in LRU cache now
@@ -270,7 +270,7 @@ public class CachePerformanceTest
         ColumnFamily cf = createCF();
         ArrayList<Float> LFUhitrate = simpleCase(cf, cache);
 
-        System.out.println("LFU sequential hit rate");
+        System.out.println("LRU sequential hit rate");
         for (float hitrate : LFUhitrate) {
             System.out.println(hitrate);
         }
