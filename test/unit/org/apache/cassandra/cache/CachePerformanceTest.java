@@ -102,7 +102,7 @@ public class CachePerformanceTest
 
     private void simpleCase(ColumnFamily cf, ICache<MeasureableString, IRowCacheEntry> cache)
     {
-        String fileName = "hit-rates.txt";
+        String fileName = "hit-rates-LRU.txt";
         FileWriter writer = null;
         try {
             writer = new FileWriter(fileName);
@@ -110,7 +110,7 @@ public class CachePerformanceTest
             double total = 0;
 
             List<MeasureableString> keys = Arrays.asList(key1, key2, key3, key4, key5, key6, key7, key8);
-            List<Integer> weights = Arrays.asList(1, 1, 2, 3, 1, 1, 1, 1);
+            List<Integer> weights = Arrays.asList(1, 1, 5, 1, 1, 1, 1, 1);
 
             int testNumbers = 10000;
             while (testNumbers-- > 0) {
