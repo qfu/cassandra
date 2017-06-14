@@ -31,11 +31,16 @@ import org.junit.Test;
 import static org.apache.cassandra.Util.column;
 import org.apache.cassandra.utils.Pair;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.*;
@@ -53,8 +58,10 @@ public class CachePerformanceTest
     MeasureableString key4 = new MeasureableString("key4");
     MeasureableString key5 = new MeasureableString("key5");
     MeasureableString key6 = new MeasureableString("key6");
+    MeasureableString key7 = new MeasureableString("key7");
+    MeasureableString key8 = new MeasureableString("key8");
     private static final long CAPACITY = 5;
-    private static final String KEYSPACE1 = "CacheProviderTest1";
+    private static final String KEYSPACE1 = "CachePerformanceTest";
     private static final String CF_STANDARD1 = "Standard1";
 
 
@@ -75,178 +82,60 @@ public class CachePerformanceTest
                                     SchemaLoader.standardCFMD(KEYSPACE1, CF_STANDARD1));
     }
 
-    private ArrayList<Float> simpleCase(ColumnFamily cf, ICache<MeasureableString, IRowCacheEntry> cache)
-    {
-        ArrayList<Float> hitrate = new ArrayList<Float>();
-        float hits = 0;
-        float testtimes = 0;
+    public MeasureableString weightedRandom(List<MeasureableString> items, List<Integer> weights) {
+        Double completeWeight = 0.0;
 
-        cache.put(key1, cf);
-        cache.put(key2, cf);
-        for (int i = 0; i < 20; i++) {
-            cache.get(key1);
-            cache.get(key2);
+        int length = items.size();
+        assert length == weights.size();
+        for (int i = 0; i < length; i++) {
+            completeWeight += weights.get(i);
         }
-
-        cache.put(key3, cf);
-        cache.put(key4, cf);
-        cache.put(key5, cf);
-        cache.put(key6, cf);
-
-        assertEquals(CAPACITY, cache.size());
-        assertNotNull(cache.get(key2));
-        assertNotNull(cache.get(key3));
-        assertNotNull(cache.get(key4));
-        assertNotNull(cache.get(key5));
-        assertNotNull(cache.get(key6));
-
-        assertNull(cache.get(key1));
-
-        // key1, key2, key4, key5, key6 should be in LFU cache now
-        // key2, key3, key4, key5, ley6 should be in LRU cache now
-
-        // measure cache hit rate
-        for (int j = 0; j < 20; j++) {
-            if (cache.get(key1) != null) {
-                hits ++;
-            }
-            testtimes ++;
-            hitrate.add(hits / testtimes);
-
-            if (cache.get(key1) != null) {
-                hits ++;
-            }
-            testtimes ++;
-            hitrate.add(hits / testtimes);
-
-            if (cache.get(key3) != null) {
-                hits ++;
-            }
-            testtimes ++;
-            hitrate.add(hits / testtimes);
-
-            if (cache.get(key4) != null) {
-                hits ++;
-            }
-            testtimes ++;
-            hitrate.add(hits / testtimes);
-
-            if (cache.get(key5) != null) {
-                hits ++;
-            }
-            testtimes ++;
-            hitrate.add(hits / testtimes);
-
+        double r = Math.random() * completeWeight;
+        double countWeight = 0.0;
+        for (int i = 0; i < length; i++) {
+            countWeight += weights.get(i);
+            if (countWeight >= r)
+                return items.get(i);
         }
-
-        return hitrate;
-
+        throw new RuntimeException("Should never be shown.");
     }
 
-    private void concurrentCase(final ColumnFamily cf, final ICache<MeasureableString, IRowCacheEntry> cache) throws InterruptedException
+    private void simpleCase(ColumnFamily cf, ICache<MeasureableString, IRowCacheEntry> cache)
     {
-    /*
-        cache.put(key1, cf);
-        cache.put(key2, cf);
-        for (int i = 0; i < 20; i++) {
-            cache.get(key1);
-            cache.get(key2);
-        }
+        String fileName = "hit-rates.txt";
+        FileWriter writer = null;
+        try {
+            writer = new FileWriter(fileName);
+            double hits = 0;
+            double total = 0;
 
-        cache.put(key3, cf);
-        cache.put(key4, cf);
-        cache.put(key5, cf);
-        cache.put(key6, cf);
+            List<MeasureableString> keys = Arrays.asList(key1, key2, key3, key4, key5, key6, key7, key8);
+            List<Integer> weights = Arrays.asList(1, 1, 2, 3, 1, 1, 1, 1);
 
-        // key1, key2, key4, key5, key6 should be in LFU cache now
-        // key2, key3, key4, key5, ley6 should be in LRU cache now
-
-
-        Runnable runable = new Runnable()
-        {
-            public void run()
-            {
-                for (int j = 0; j < 10; j++) {
-                    synchronized(this)
-                    {
-                        if (cache.get(key1) != null)
-                        {
-                            hits.incrementAndGet();
-                        }
-                        testtimes.incrementAndGet();
-                        LRUConcurrentHitRate.add((float) hits.get() / (float) testtimes.get());
-                    }
-
-                    synchronized(this)
-                    {
-                        if (cache.get(key1) != null)
-                        {
-                            hits.incrementAndGet();
-                        }
-                        testtimes.incrementAndGet();
-                        LRUConcurrentHitRate.add((float) hits.get() / (float) testtimes.get());
-                    }
-
-                    synchronized(this)
-                    {
-                        if (cache.get(key3) != null)
-                        {
-                            hits.incrementAndGet();
-                        }
-                        testtimes.incrementAndGet();
-                        LRUConcurrentHitRate.add((float) hits.get() / (float) testtimes.get());
-                    }
-
-                    synchronized(this)
-                    {
-                        if (cache.get(key4) != null)
-                        {
-                            hits.incrementAndGet();
-                        }
-                        testtimes.incrementAndGet();
-                        LRUConcurrentHitRate.add((float) hits.get() / (float) testtimes.get());
-                    }
-
-                    synchronized(this)
-                    {
-                        if (cache.get(key5) != null)
-                        {
-                            hits.incrementAndGet();
-                        }
-                        testtimes.incrementAndGet();
-                        LRUConcurrentHitRate.add((float) hits.get() / (float) testtimes.get());
-                    }
+            int testNumbers = 10000;
+            while (testNumbers-- > 0) {
+                total++;
+                MeasureableString curr = weightedRandom(keys, weights);
+                if (cache.containsKey(curr)) {
+                    hits++;
+                    cache.get(curr);
+                } else {
+                    cache.put(curr, cf);
                 }
-
-
+                Double hitRate = hits / total;
+                writer.write(hitRate.toString() + '\n');
             }
-        };
-        */
-        Runnable runable = new Runnable()
-        {
-            public void run()
-            {
-                for (int j = 0; j < 10; j++)
-                {
-                    cache.put(key1, cf);
-                    cache.put(key2, cf);
-                    cache.put(key3, cf);
-                    cache.put(key4, cf);
-                    cache.put(key5, cf);
-                }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                writer.close();
+            } catch (Exception ex) {
+                /*ignore*/
             }
-        };
-
-        List<Thread> threads = new ArrayList<Thread>(100);
-        for (int i = 0; i < 100; i++)
-        {
-            Thread thread = new Thread(runable);
-            threads.add(thread);
-            thread.start();
         }
-        for (Thread thread : threads)
-            thread.join();
     }
+
     private void assertDigests(IRowCacheEntry one, ColumnFamily two)
     {
         // CF does not implement .equals
@@ -268,27 +157,9 @@ public class CachePerformanceTest
     {
         ICache<MeasureableString, IRowCacheEntry> cache = SerializingCache.create(CAPACITY, Weighers.<RefCountedMemory>singleton(), new SerializingCacheProvider.RowCacheSerializer());
         ColumnFamily cf = createCF();
-        ArrayList<Float> LFUhitrate = simpleCase(cf, cache);
-
-        System.out.println("LRU sequential hit rate");
-        for (float hitrate : LFUhitrate) {
-            System.out.println(hitrate);
-        }
+        simpleCase(cf, cache);
     }
 
-    @Test
-    public void testConcurrentCache() throws InterruptedException
-    {
-        ICache<MeasureableString, IRowCacheEntry> cache = SerializingCache.create(CAPACITY, Weighers.<RefCountedMemory>singleton(), new SerializingCacheProvider.RowCacheSerializer());
-        ColumnFamily cf = createCF();
-        concurrentCase(cf, cache);
-    /*
-        System.out.println("LFU concurrent hit rate");
-        Iterator concurrentHitRate = LRUConcurrentHitRate.iterator(); // Must be in synchronized block
-        while (concurrentHitRate.hasNext())
-            System.out.println(concurrentHitRate);
-    */
-    }
 
     private class MeasureableString implements IMeasurableMemory
     {
